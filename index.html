@@ -5,7 +5,7 @@
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
     <title>Unity WebGL Player | Dream Head Soccer</title>
     <link rel="shortcut icon" href="TemplateData/favicon.ico">
-    <link rel="stylesheet" href="TemplateData/style.css">
+    <link rel="stylesheet" href="TemplateData/style.css?v=fit3">
   </head>
   <body>
     <div id="unity-container" class="unity-desktop">
@@ -57,16 +57,19 @@
       }
 
       var buildUrl = "Build";
-      var loaderUrl = buildUrl + "/WebGL_full.loader.js";
+      var buildVer = "20261117095629";
+      // DHS_WEBGL_NO_IDB_CACHE: a stale Unity indexedDB data blob revalidates as 304 and the loader waits forever at the end of the progress bar.
+      var loaderUrl = buildUrl + "/WebGL_full.loader.js?v=" + buildVer;
       var config = {
-        dataUrl: buildUrl + "/WebGL_full.data",
-        frameworkUrl: buildUrl + "/WebGL_full.framework.js",
-        codeUrl: buildUrl + "/WebGL_full.wasm",
+        dataUrl: buildUrl + "/WebGL_full.data?v=" + buildVer,
+        frameworkUrl: buildUrl + "/WebGL_full.framework.js?v=" + buildVer,
+        codeUrl: buildUrl + "/WebGL_full.wasm?v=" + buildVer,
         streamingAssetsUrl: "StreamingAssets",
         companyName: "DreamHeadSoccer",
         productName: "Dream Head Soccer",
         productVersion: "1.2.0",
         showBanner: unityShowBanner,
+        cacheControl: function () { return "no-store"; },
       };
 
       // By default, Unity keeps WebGL canvas render target size matched with
@@ -100,12 +103,44 @@
         // config.devicePixelRatio = 1;
 
 
-      } else {
-        // Desktop style: Render the game canvas in a window that can be maximized to fullscreen:
-
-        canvas.style.width = "960px";
-        canvas.style.height = "600px";
       }
+
+      // DHS_WEBGL_FIT: canvas matches the window. CSS aspect equals the
+      // framebuffer aspect, so round buttons are not stretched into ovals
+      // and nothing is cover-cropped. ViewportFill extends scenery only.
+      function fitUnityCanvas() {
+        var vw = window.innerWidth || document.documentElement.clientWidth || 960;
+        var vh = window.innerHeight || document.documentElement.clientHeight || 600;
+        if (vw < 1) vw = 960;
+        if (vh < 1) vh = 600;
+        canvas.style.width = Math.round(vw) + "px";
+        canvas.style.height = Math.round(vh) + "px";
+        canvas.style.left = "0px";
+        canvas.style.top = "0px";
+      }
+      fitUnityCanvas();
+      window.addEventListener("resize", fitUnityCanvas);
+
+            try {
+        if (window.indexedDB && indexedDB.deleteDatabase) indexedDB.deleteDatabase("UnityCache");
+        if (window.caches && caches.keys) {
+          caches.keys().then(function (keys) {
+            keys.forEach(function (k) {
+              if (k.indexOf("UnityCache") === 0) caches.delete(k);
+            });
+          });
+        }
+      } catch (e) {}
+
+      var unityFetch = window.fetch;
+      window.fetch = function (input, init) {
+        var url = typeof input === "string" ? input : (input && input.url) || "";
+        if (/\/Build\/.+\.(data|wasm|js)(\?|$)/.test(url)) {
+          init = init ? Object.assign({}, init) : {};
+          init.cache = "reload";
+        }
+        return unityFetch.call(window, input, init);
+      };
 
       loadingBar.style.display = "block";
 
@@ -116,6 +151,17 @@
           progressBarFull.style.width = 100 * progress + "%";
               }).then((unityInstance) => {
                 loadingBar.style.display = "none";
+                fitUnityCanvas();
+                /* DHS_WEBGL_KEYBOARD_PATCH */
+                canvas.setAttribute("tabindex", "0");
+                canvas.focus();
+                canvas.addEventListener("pointerdown", () => canvas.focus());
+                window.addEventListener("keydown", (e) => {
+                  if (["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", " "].indexOf(e.key) >= 0) {
+                    e.preventDefault();
+                  }
+                }, { passive: false });
+
                 fullscreenButton.onclick = () => {
                   unityInstance.SetFullscreen(1);
                 };
