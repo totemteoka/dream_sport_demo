@@ -57,13 +57,13 @@
       }
 
       var buildUrl = "Build";
-      var buildVer = "20261117095629";
+      var buildVer = "20261118080542";
       // DHS_WEBGL_NO_IDB_CACHE: a stale Unity indexedDB data blob revalidates as 304 and the loader waits forever at the end of the progress bar.
-      var loaderUrl = buildUrl + "/WebGL_full.loader.js?v=" + buildVer;
+      var loaderUrl = buildUrl + "/WebGL_staging.loader.js?v=" + buildVer;
       var config = {
-        dataUrl: buildUrl + "/WebGL_full.data?v=" + buildVer,
-        frameworkUrl: buildUrl + "/WebGL_full.framework.js?v=" + buildVer,
-        codeUrl: buildUrl + "/WebGL_full.wasm?v=" + buildVer,
+        dataUrl: buildUrl + "/WebGL_staging.data?v=" + buildVer,
+        frameworkUrl: buildUrl + "/WebGL_staging.framework.js?v=" + buildVer,
+        codeUrl: buildUrl + "/WebGL_staging.wasm?v=" + buildVer,
         streamingAssetsUrl: "StreamingAssets",
         companyName: "DreamHeadSoccer",
         productName: "Dream Head Soccer",
